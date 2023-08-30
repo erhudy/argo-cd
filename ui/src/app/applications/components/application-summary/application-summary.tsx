@@ -30,6 +30,7 @@ import {EditAnnotations} from './edit-annotations';
 
 import './application-summary.scss';
 import {DeepLinks} from '../../../shared/components/deep-links';
+import { KVList } from '../../../shared/components/kvlist';
 
 function swap(array: any[], a: number, b: number) {
     array = array.slice();
@@ -67,18 +68,14 @@ export const ApplicationSummary = (props: ApplicationSummaryProps) => {
         },
         {
             title: 'LABELS',
-            view: Object.keys(app.metadata.labels || {})
-                .map(label => `${label}=${app.metadata.labels[label]}`)
-                .join(' '),
+            view: KVList(app.metadata.labels || {}),
             edit: (formApi: FormApi) => <FormField formApi={formApi} field='metadata.labels' component={MapInputField} />
         },
         {
             title: 'ANNOTATIONS',
             view: (
                 <Expandable height={48}>
-                    {Object.keys(app.metadata.annotations || {})
-                        .map(annotation => `${annotation}=${app.metadata.annotations[annotation]}`)
-                        .join(' ')}
+                    {KVList(app.metadata.annotations || {})}
                 </Expandable>
             ),
             edit: (formApi: FormApi) => <EditAnnotations formApi={formApi} app={app} />

@@ -5,7 +5,7 @@ import * as React from 'react';
 import {FormApi, Text} from 'react-form';
 import {RouteComponentProps} from 'react-router';
 
-import {BadgePanel, CheckboxField, DataLoader, EditablePanel, ErrorNotification, MapInputField, Page, Query} from '../../../shared/components';
+import {BadgePanel, CheckboxField, DataLoader, EditablePanel, ErrorNotification, Expandable, MapInputField, Page, Query} from '../../../shared/components';
 import {AppContext, Consumer} from '../../../shared/context';
 import {GroupKind, Groups, Project, DetailedProjectsResponse, ProjectSpec, ResourceKinds} from '../../../shared/models';
 import {CreateJWTTokenParams, DeleteJWTTokenParams, ProjectRoleParams, services} from '../../../shared/services';
@@ -16,6 +16,7 @@ import {ProjectEvents} from '../project-events/project-events';
 import {ProjectRoleEditPanel} from '../project-role-edit-panel/project-role-edit-panel';
 import {ProjectSyncWindowsEditPanel} from '../project-sync-windows-edit-panel/project-sync-windows-edit-panel';
 import {ResourceListsPanel} from './resource-lists-panel';
+import {KVList} from '../../../shared/components/kvlist';
 import {DeepLinks} from '../../../shared/components/deep-links';
 
 require('./project-details.scss');
@@ -572,10 +573,13 @@ export class ProjectDetails extends React.Component<RouteComponentProps<{name: s
                         },
                         {
                             title: 'LABELS',
-                            view: Object.keys(proj.metadata.labels || {})
-                                .map(label => `${label}=${proj.metadata.labels[label]}`)
-                                .join(' '),
+                            view: KVList(proj.metadata.labels || {}),
                             edit: (formApi: FormApi) => <FormField formApi={formApi} field='metadata.labels' component={MapInputField} />
+                        },
+                        {
+                            title: 'ANNOTATIONS',
+                            view: KVList(proj.metadata.annotations || {}),
+                            edit: (formApi: FormApi) => <FormField formApi={formApi} field='metadata.annotations' component={MapInputField} />
                         },
                         {
                             title: 'LINKS',

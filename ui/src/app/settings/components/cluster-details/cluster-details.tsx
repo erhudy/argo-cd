@@ -10,6 +10,7 @@ import {FormField, Ticker} from 'argo-ui';
 import {ConnectionStateIcon, DataLoader, EditablePanel, Page, Timestamp, MapInputField} from '../../../shared/components';
 import {Cluster} from '../../../shared/models';
 import {services} from '../../../shared/services';
+import { KVList } from '../../../shared/components/kvlist';
 
 function isRefreshRequested(cluster: Cluster): boolean {
     return cluster.info.connectionState.attemptedAt && cluster.refreshRequestedAt && moment(cluster.info.connectionState.attemptedAt).isBefore(moment(cluster.refreshRequestedAt));
@@ -88,16 +89,12 @@ export const ClusterDetails = (props: RouteComponentProps<{server: string}>) => 
                                 },
                                 {
                                     title: 'LABELS',
-                                    view: Object.keys(cluster.labels || [])
-                                        .map(label => `${label}=${cluster.labels[label]}`)
-                                        .join(' '),
+                                    view: KVList(cluster.labels || {}),
                                     edit: formApi => <FormField formApi={formApi} field='labels' component={MapInputField} />
                                 },
                                 {
                                     title: 'ANNOTATIONS',
-                                    view: Object.keys(cluster.annotations || [])
-                                        .map(annotation => `${annotation}=${cluster.annotations[annotation]}`)
-                                        .join(' '),
+                                    view: KVList(cluster.annotations || {}),
                                     edit: formApi => <FormField formApi={formApi} field='annotations' component={MapInputField} />
                                 }
                             ]}

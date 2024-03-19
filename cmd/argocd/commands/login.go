@@ -242,8 +242,8 @@ func oauth2Login(
 	// Handles both implicit and authorization code flow
 	callbackHandler := func(w http.ResponseWriter, r *http.Request) {
 		log.Debugf("Callback: %s", r.URL)
-
 		if formErr := r.FormValue("error"); formErr != "" {
+
 			handleErr(w, fmt.Sprintf("%s: %s", formErr, r.FormValue("error_description")))
 			return
 		}

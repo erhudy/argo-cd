@@ -380,7 +380,7 @@ func Test_DexReverseProxy(t *testing.T) {
 		}))
 		defer fakeDex.Close()
 		fmt.Printf("Fake Dex listening on %s\n", fakeDex.URL)
-		server := httptest.NewServer(http.HandlerFunc(NewDexHTTPReverseProxy(fakeDex.URL, "/", nil)))
+		server := httptest.NewServer(http.HandlerFunc(NewDexHTTPReverseProxy(fakeDex.URL, "/", nil, []byte("foo"))))
 		fmt.Printf("Fake API Server listening on %s\n", server.URL)
 		defer server.Close()
 		target, _ := url.Parse(fakeDex.URL)
@@ -398,7 +398,7 @@ func Test_DexReverseProxy(t *testing.T) {
 		}))
 		defer fakeDex.Close()
 		fmt.Printf("Fake Dex listening on %s\n", fakeDex.URL)
-		server := httptest.NewServer(http.HandlerFunc(NewDexHTTPReverseProxy(fakeDex.URL, "/", nil)))
+		server := httptest.NewServer(http.HandlerFunc(NewDexHTTPReverseProxy(fakeDex.URL, "/", nil, []byte("foo"))))
 		fmt.Printf("Fake API Server listening on %s\n", server.URL)
 		defer server.Close()
 		client := &http.Client{
@@ -418,7 +418,7 @@ func Test_DexReverseProxy(t *testing.T) {
 	t.Run("Invalid URL for Dex reverse proxy", func(t *testing.T) {
 		// Can't test for now, since it would call exit
 		t.Skip()
-		f := NewDexHTTPReverseProxy(invalidURL, "/", nil)
+		f := NewDexHTTPReverseProxy(invalidURL, "/", nil, []byte("foo"))
 		assert.Nil(t, f)
 	})
 

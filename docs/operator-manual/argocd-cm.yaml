@@ -251,6 +251,9 @@ data:
   jsonnet.enabled: true
   helm.enabled: true
 
+  # If enabled, it would allow IdP initiated login flow. By default, it is disabled.
+  idpinitiated.enabled: "false"
+
   # Build options/parameters to use with `kustomize build` (optional)
   kustomize.buildOptions: --load_restrictor none
 

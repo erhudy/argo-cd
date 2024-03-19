@@ -122,6 +122,9 @@ type ArgoCDSettings struct {
 	// ExtensionConfig configurations related to ArgoCD proxy extensions. The value
 	// is a yaml string defined in extension.ExtensionConfigs struct.
 	ExtensionConfig string `json:"extensionConfig,omitempty"`
+
+	// Enable IdP Initiated Login flow
+	EnableIdPInitiatedLogin bool `json:"enableIdPInitiatedLogin,omitempty"`
 }
 
 type GoogleAnalytics struct {
@@ -517,6 +520,8 @@ const (
 	RespectRBAC            = "resource.respectRBAC"
 	RespectRBACValueStrict = "strict"
 	RespectRBACValueNormal = "normal"
+	// idPInitiatedLoginKey is the key to configure whether IdP Initiated Login flow is enabled
+	IdPInitiatedLoginKey = "idpinitiated.enabled"
 )
 
 const (
@@ -1453,6 +1458,7 @@ func getDownloadBinaryUrlsFromConfigMap(argoCDCM *apiv1.ConfigMap) map[string]st
 func updateSettingsFromConfigMap(settings *ArgoCDSettings, argoCDCM *apiv1.ConfigMap) {
 	settings.DexConfig = argoCDCM.Data[settingDexConfigKey]
 	settings.OIDCConfigRAW = argoCDCM.Data[settingsOIDCConfigKey]
+	settings.EnableIdPInitiatedLogin = argoCDCM.Data[IdPInitiatedLoginKey] == "true"
 	settings.KustomizeBuildOptions = argoCDCM.Data[kustomizeBuildOptionsKey]
 	settings.StatusBadgeEnabled = argoCDCM.Data[statusBadgeEnabledKey] == "true"
 	settings.StatusBadgeRootUrl = argoCDCM.Data[statusBadgeRootUrlKey]

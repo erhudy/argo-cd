@@ -129,6 +129,9 @@ type ArgoCDSettings struct {
 	// ImpersonationEnabled indicates whether Application sync privileges can be decoupled from control plane
 	// privileges using impersonation
 	ImpersonationEnabled bool `json:"impersonationEnabled"`
+
+	// Enable IdP Initiated Login flow
+	EnableIdPInitiatedLogin bool `json:"enableIdPInitiatedLogin,omitempty"`
 }
 
 type GoogleAnalytics struct {
@@ -534,6 +537,8 @@ const (
 	RespectRBACValueNormal = "normal"
 	// impersonationEnabledKey is the key to configure whether the application sync decoupling through impersonation feature is enabled
 	impersonationEnabledKey = "application.sync.impersonation.enabled"
+	// idPInitiatedLoginKey is the key to configure whether IdP Initiated Login flow is enabled
+	IdPInitiatedLoginKey = "idpinitiated.enabled"
 )
 
 const (
@@ -1485,6 +1490,7 @@ func getDownloadBinaryUrlsFromConfigMap(argoCDCM *apiv1.ConfigMap) map[string]st
 func updateSettingsFromConfigMap(settings *ArgoCDSettings, argoCDCM *apiv1.ConfigMap) {
 	settings.DexConfig = argoCDCM.Data[settingDexConfigKey]
 	settings.OIDCConfigRAW = argoCDCM.Data[settingsOIDCConfigKey]
+	settings.EnableIdPInitiatedLogin = argoCDCM.Data[IdPInitiatedLoginKey] == "true"
 	settings.KustomizeBuildOptions = argoCDCM.Data[kustomizeBuildOptionsKey]
 	settings.StatusBadgeEnabled = argoCDCM.Data[statusBadgeEnabledKey] == "true"
 	settings.StatusBadgeRootUrl = argoCDCM.Data[statusBadgeRootUrlKey]

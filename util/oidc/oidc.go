@@ -162,6 +162,11 @@ func (a *ClientApp) oauth2Config(scopes []string) (*oauth2.Config, error) {
 	}, nil
 }
 
+// GetEncryptionKey returns the encryption key used to encrypt the JWT
+func (a *ClientApp) GetEncryptionKey() []byte {
+	return a.encryptionKey
+}
+
 // generateAppState creates an app state nonce
 func (a *ClientApp) generateAppState(returnURL string, w http.ResponseWriter) (string, error) {
 	// According to the spec (https://www.rfc-editor.org/rfc/rfc6749#section-10.10), this must be guessable with
@@ -194,6 +199,7 @@ func (a *ClientApp) generateAppState(returnURL string, w http.ResponseWriter) (s
 func (a *ClientApp) verifyAppState(r *http.Request, w http.ResponseWriter, state string) (string, error) {
 	c, err := r.Cookie(common.StateCookieName)
 	if err != nil {
+		log.Errorf("coookiErr: %v", err)
 		return "", err
 	}
 	val, err := hex.DecodeString(c.Value)
@@ -225,6 +231,7 @@ func (a *ClientApp) verifyAppState(r *http.Request, w http.ResponseWriter, state
 	http.SetCookie(w, &http.Cookie{
 		Name:     common.StateCookieName,
 		Value:    "",
+		Path:     "/",
 		HttpOnly: true,
 		SameSite: http.SameSiteLaxMode,
 		Secure:   a.secureCookie,
@@ -332,12 +339,15 @@ func (a *ClientApp) HandleLogin(w http.ResponseWriter, r *http.Request) {
 
 // HandleCallback is the callback handler for an OAuth2 login flow
 func (a *ClientApp) HandleCallback(w http.ResponseWriter, r *http.Request) {
+
+	var returnURL string
+
 	oauth2Config, err := a.oauth2Config(nil)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	log.Infof("Callback: %s", r.URL)
+
 	if errMsg := r.FormValue("error"); errMsg != "" {
 		errorDesc := r.FormValue("error_description")
 		http.Error(w, html.EscapeString(errMsg)+": "+html.EscapeString(errorDesc), http.StatusBadRequest)
@@ -350,10 +360,17 @@ func (a *ClientApp) HandleCallback(w http.ResponseWriter, r *http.Request) {
 		a.handleImplicitFlow(r, w, state)
 		return
 	}
-	returnURL, err := a.verifyAppState(r, w, state)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+
+	if state == "" {
+		// this will handle an empty state that comes back from the dex server
+		returnURL = "/"
+
+	} else {
+		returnURL, err = a.verifyAppState(r, w, state)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
 	}
 	ctx := gooidc.ClientContext(r.Context(), a.client)
 	token, err := oauth2Config.Exchange(ctx, code)

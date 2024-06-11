@@ -241,10 +241,17 @@ data:
     g, my-org:team-qa, role:tester
 ```
 
-## Anonymous Access
+## Compressing the policy CSV
 
-The anonymous access to Argo CD can be enabled using `users.anonymous.enabled` field in `argocd-cm` (see [argocd-cm.yaml](argocd-cm.yaml)).
-The anonymous users get default role permissions specified by `policy.default` in `argocd-rbac-cm.yaml`. For read-only access you'll want `policy.default: role:readonly` as above
+Argo CD supports gzipped versions of policy in order to reduce the size of the ConfigMap in etcd, which is limited to a maximum of 1 MiB.
+
+To make use of this feature, gzip-compress the policy CSV and base64 encode it, then place it in the ConfigMap at the `policy.csv.gz` key. Argo CD will automatically decode and decompress it.
+
+Composition policy files are supported in the same manner, by adding `.gz` to the end of the key.
+
+Gzipped and ungzipped versions of the same policy file will be treated as an error; e.g., you cannot provide both `policy.csv` and `policy.csv.gz`, or `policy.overlay-1.csv` and `policy.overlay-1.csv.gz`.
+
+Gzipped and ungzipped versions may otherwise be mixed and matched; e.g. it is permissible to provide `policy.csv.gz` which is gzipped, but then add uncompressed additional files `policy.overlay-1.csv`, or vice versa.
 
 ## Validating and testing your RBAC policies
 

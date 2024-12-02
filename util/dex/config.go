@@ -82,6 +82,14 @@ func GenerateDexConfigYAML(argocdSettings *settings.ArgoCDSettings, disableTls b
 		"secret":       argocdSettings.DexOAuth2ClientSecret(),
 		"redirectURIs": append([]string{redirectURL}, additionalRedirectURLs...),
 	}
+
+	if argocdSettings.EnableIdPInitiatedLogin {
+		argoCDStaticClient["samlInitiated"] = map[string]interface{}{
+			"redirectURI": redirectURL,
+			"scopes":      []string{"openid", "profile", "email", "groups"},
+		}
+	}
+
 	argoCDPKCEStaticClient := map[string]interface{}{
 		"id":   "argo-cd-pkce",
 		"name": "Argo CD PKCE",

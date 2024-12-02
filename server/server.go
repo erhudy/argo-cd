@@ -561,7 +561,13 @@ func (a *ArgoCDServer) Run(ctx context.Context, listeners *Listeners) {
 
 		// If not matched, we assume that its TLS.
 		tlsl := tcpm.Match(cmux.Any())
-		tlsConfig := tls.Config{}
+		tlsConfig := tls.Config{
+			// Advertise that we support both http/1.1 and http2 for application level communication.
+			// By putting http/1.1 first, we ensure that HTTPS clients will use http/1.1, which is the only
+			// protocol our server supports for HTTPS clients. By including h2 in the list, we ensure that
+			// gRPC clients know we support http2 for their communication.
+			NextProtos: []string{"http/1.1", "h2"},
+		}
 		tlsConfig.GetCertificate = func(info *tls.ClientHelloInfo) (*tls.Certificate, error) {
 			return a.settings.Certificate, nil
 		}
@@ -1194,8 +1200,8 @@ func (a *ArgoCDServer) registerDexHandlers(mux *http.ServeMux) {
 	}
 	// Run dex OpenID Connect Identity Provider behind a reverse proxy (served at /api/dex)
 	var err error
-	mux.HandleFunc(common.DexAPIEndpoint+"/", dexutil.NewDexHTTPReverseProxy(a.DexServerAddr, a.BaseHRef, a.DexTLSConfig))
 	a.ssoClientApp, err = oidc.NewClientApp(a.settings, a.DexServerAddr, a.DexTLSConfig, a.BaseHRef, cacheutil.NewRedisCache(a.RedisClient, a.settings.UserInfoCacheExpiration(), cacheutil.RedisCompressionNone))
+	mux.HandleFunc(common.DexAPIEndpoint+"/", dexutil.NewDexHTTPReverseProxy(a.DexServerAddr, a.BaseHRef, a.DexTLSConfig, a.ssoClientApp.GetEncryptionKey()))
 	errorsutil.CheckError(err)
 	mux.HandleFunc(common.LoginEndpoint, a.ssoClientApp.HandleLogin)
 	mux.HandleFunc(common.CallbackEndpoint, a.ssoClientApp.HandleCallback)
@@ -1287,7 +1293,7 @@ func (server *ArgoCDServer) newStaticAssetsHandler() func(http.ResponseWriter, *
 		w.Header().Set("X-XSS-Protection", "1")
 
 		// serve index.html for non file requests to support HTML5 History API
-		if acceptHTML && !fileRequest && (r.Method == "GET" || r.Method == "HEAD") {
+		if acceptHTML && !fileRequest && (r.Method == http.MethodGet || r.Method == http.MethodHead) {
 			for k, v := range noCacheHeaders {
 				w.Header().Set(k, v)
 			}

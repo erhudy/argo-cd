@@ -261,6 +261,7 @@ func TestCachedManifestResponse_HashBehavior(t *testing.T) {
 }
 
 func getInMemoryCacheContents(t *testing.T, inMemCache *cacheutil.InMemoryCache) map[string]*CachedManifestResponse {
+	t.Helper()
 	items, err := inMemCache.Items(func() interface{} { return &CachedManifestResponse{} })
 	if err != nil {
 		t.Fatal(err)
@@ -570,8 +571,7 @@ func TestUnlockGitReferences(t *testing.T) {
 
 	t.Run("Test not locked", func(t *testing.T) {
 		err := cache.UnlockGitReferences("test-repo", "")
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "key is missing")
+		assert.ErrorContains(t, err, "key is missing")
 	})
 
 	t.Run("Test unlock", func(t *testing.T) {

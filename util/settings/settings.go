@@ -129,6 +129,9 @@ type ArgoCDSettings struct {
 	// ImpersonationEnabled indicates whether Application sync privileges can be decoupled from control plane
 	// privileges using impersonation
 	ImpersonationEnabled bool `json:"impersonationEnabled"`
+
+	// Enable IdP Initiated Login flow
+	EnableIdPInitiatedLogin bool `json:"enableIdPInitiatedLogin,omitempty"`
 }
 
 type GoogleAnalytics struct {
@@ -461,6 +464,8 @@ const (
 	resourceInclusionsKey = "resource.inclusions"
 	// resourceIgnoreResourceUpdatesEnabledKey is the key to a boolean determining whether the resourceIgnoreUpdates feature is enabled
 	resourceIgnoreResourceUpdatesEnabledKey = "resource.ignoreResourceUpdatesEnabled"
+	// resourceSensitiveAnnotationsKey is the key to list of annotations to mask in secret resource
+	resourceSensitiveAnnotationsKey = "resource.sensitive.mask.annotations"
 	// resourceCustomLabelKey is the key to a custom label to show in node info, if present
 	resourceCustomLabelsKey = "resource.customLabels"
 	// resourceIncludeEventLabelKeys is the key to labels to be added onto Application k8s events if present on an Application or it's AppProject. Supports wildcard.
@@ -532,6 +537,8 @@ const (
 	RespectRBACValueNormal = "normal"
 	// impersonationEnabledKey is the key to configure whether the application sync decoupling through impersonation feature is enabled
 	impersonationEnabledKey = "application.sync.impersonation.enabled"
+	// idPInitiatedLoginKey is the key to configure whether IdP Initiated Login flow is enabled
+	IdPInitiatedLoginKey = "idpinitiated.enabled"
 )
 
 const (
@@ -919,7 +926,7 @@ func (mgr *SettingsManager) GetIsIgnoreResourceUpdatesEnabled() (bool, error) {
 	}
 
 	if argoCDCM.Data[resourceIgnoreResourceUpdatesEnabledKey] == "" {
-		return false, nil
+		return true, nil
 	}
 
 	return strconv.ParseBool(argoCDCM.Data[resourceIgnoreResourceUpdatesEnabledKey])
@@ -1337,6 +1344,10 @@ func (mgr *SettingsManager) GetSettings() (*ArgoCDSettings, error) {
 	if err != nil {
 		return nil, err
 	}
+	// SecretNamespaceLister lists all Secrets in the indexer for a given namespace.
+	// Objects returned by the lister must be treated as read-only.
+	// To allow us to modify the secrets, make a copy
+	secrets = util.SecretCopy(secrets)
 	var settings ArgoCDSettings
 	var errs []error
 	updateSettingsFromConfigMap(&settings, argoCDCM)
@@ -1479,6 +1490,7 @@ func getDownloadBinaryUrlsFromConfigMap(argoCDCM *apiv1.ConfigMap) map[string]st
 func updateSettingsFromConfigMap(settings *ArgoCDSettings, argoCDCM *apiv1.ConfigMap) {
 	settings.DexConfig = argoCDCM.Data[settingDexConfigKey]
 	settings.OIDCConfigRAW = argoCDCM.Data[settingsOIDCConfigKey]
+	settings.EnableIdPInitiatedLogin = argoCDCM.Data[IdPInitiatedLoginKey] == "true"
 	settings.KustomizeBuildOptions = argoCDCM.Data[kustomizeBuildOptionsKey]
 	settings.StatusBadgeEnabled = argoCDCM.Data[statusBadgeEnabledKey] == "true"
 	settings.StatusBadgeRootUrl = argoCDCM.Data[statusBadgeRootUrlKey]
@@ -2339,6 +2351,28 @@ func (mgr *SettingsManager) GetExcludeEventLabelKeys() []string {
 		}
 	}
 	return labelKeys
+}
+
+func (mgr *SettingsManager) GetSensitiveAnnotations() map[string]bool {
+	annotationKeys := make(map[string]bool)
+
+	argoCDCM, err := mgr.getConfigMap()
+	if err != nil {
+		log.Error(fmt.Errorf("failed getting configmap: %w", err))
+		return annotationKeys
+	}
+
+	value, ok := argoCDCM.Data[resourceSensitiveAnnotationsKey]
+	if !ok || value == "" {
+		return annotationKeys
+	}
+
+	value = strings.ReplaceAll(value, " ", "")
+	keys := strings.Split(value, ",")
+	for _, k := range keys {
+		annotationKeys[k] = true
+	}
+	return annotationKeys
 }
 
 func (mgr *SettingsManager) GetMaxWebhookPayloadSize() int64 {

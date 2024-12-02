@@ -121,6 +121,52 @@ func TestGetExtensionConfigs(t *testing.T) {
 	}
 }
 
+func TestGetExtensionConfigs(t *testing.T) {
+	type cases struct {
+		name        string
+		input       map[string]string
+		expected    map[string]string
+		expectedLen int
+	}
+
+	testCases := []cases{
+		{
+			name:        "will return main config successfully",
+			expectedLen: 1,
+			input: map[string]string{
+				extensionConfig: "test",
+			},
+			expected: map[string]string{
+				"": "test",
+			},
+		},
+		{
+			name:        "will return main and additional config successfully",
+			expectedLen: 2,
+			input: map[string]string{
+				extensionConfig: "main config",
+				fmt.Sprintf("%s.anotherExtension", extensionConfig): "another config",
+			},
+			expected: map[string]string{
+				"":                 "main config",
+				"anotherExtension": "another config",
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			// When
+			output := getExtensionConfigs(tc.input)
+
+			// Then
+			assert.Len(t, output, tc.expectedLen)
+			assert.Equal(t, tc.expected, output)
+		})
+	}
+}
+
 func TestSaveRepositories(t *testing.T) {
 	kubeClient, settingsManager := fixtures(nil)
 	err := settingsManager.SaveRepositories([]Repository{{URL: "http://foo"}})
@@ -246,16 +292,23 @@ func TestGetServerRBACLogEnforceEnableKeyDefaultFalse(t *testing.T) {
 }
 
 func TestGetIsIgnoreResourceUpdatesEnabled(t *testing.T) {
-	_, settingsManager := fixtures(map[string]string{
+	_, settingsManager := fixtures(nil)
+	ignoreResourceUpdatesEnabled, err := settingsManager.GetIsIgnoreResourceUpdatesEnabled()
+	require.NoError(t, err)
+	assert.True(t, ignoreResourceUpdatesEnabled)
+
+	_, settingsManager = fixtures(map[string]string{
 		"resource.ignoreResourceUpdatesEnabled": "true",
 	})
-	ignoreResourceUpdatesEnabled, err := settingsManager.GetIsIgnoreResourceUpdatesEnabled()
+	ignoreResourceUpdatesEnabled, err = settingsManager.GetIsIgnoreResourceUpdatesEnabled()
 	require.NoError(t, err)
 	assert.True(t, ignoreResourceUpdatesEnabled)
 }
 
-func TestGetIsIgnoreResourceUpdatesEnabledDefaultFalse(t *testing.T) {
-	_, settingsManager := fixtures(nil)
+func TestGetIsIgnoreResourceUpdatesEnabledFalse(t *testing.T) {
+	_, settingsManager := fixtures(map[string]string{
+		"resource.ignoreResourceUpdatesEnabled": "false",
+	})
 	ignoreResourceUpdatesEnabled, err := settingsManager.GetIsIgnoreResourceUpdatesEnabled()
 	require.NoError(t, err)
 	assert.False(t, ignoreResourceUpdatesEnabled)
@@ -1267,8 +1320,7 @@ func Test_GetTLSConfiguration(t *testing.T) {
 		)
 		settingsManager := NewSettingsManager(context.Background(), kubeClient, "default")
 		settings, err := settingsManager.GetSettings()
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "could not read from secret")
+		require.ErrorContains(t, err, "could not read from secret")
 		assert.NotNil(t, settings)
 	})
 	t.Run("No external TLS secret", func(t *testing.T) {
@@ -1813,4 +1865,38 @@ func TestIsImpersonationEnabled(t *testing.T) {
 		"when user enables the flag in argocd-cm config map, IsImpersonationEnabled() must return user set value")
 	require.NoError(t, err,
 		"when user enables the flag in argocd-cm config map, IsImpersonationEnabled() must not return any error")
+}
+
+func TestSettingsManager_GetHideSecretAnnotations(t *testing.T) {
+	tests := []struct {
+		name   string
+		input  string
+		output map[string]bool
+	}{
+		{
+			name:   "Empty input",
+			input:  "",
+			output: map[string]bool{},
+		},
+		{
+			name:   "Comma separated data",
+			input:  "example.com/token-secret.value,token,key",
+			output: map[string]bool{"example.com/token-secret.value": true, "token": true, "key": true},
+		},
+		{
+			name:   "Comma separated data with space",
+			input:  "example.com/token-secret.value, token,    key",
+			output: map[string]bool{"example.com/token-secret.value": true, "token": true, "key": true},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, settingsManager := fixtures(map[string]string{
+				resourceSensitiveAnnotationsKey: tt.input,
+			})
+			keys := settingsManager.GetSensitiveAnnotations()
+			assert.Equal(t, len(tt.output), len(keys))
+			assert.Equal(t, tt.output, keys)
+		})
+	}
 }

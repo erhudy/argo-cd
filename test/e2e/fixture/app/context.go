@@ -43,6 +43,7 @@ type Context struct {
 	replace                bool
 	helmPassCredentials    bool
 	helmSkipCrds           bool
+	helmSkipTests          bool
 	trackingMethod         v1alpha1.TrackingMethod
 	sources                []v1alpha1.ApplicationSource
 }
@@ -52,17 +53,20 @@ type ContextArgs struct {
 }
 
 func Given(t *testing.T, opts ...fixture.TestOption) *Context {
+	t.Helper()
 	fixture.EnsureCleanState(t, opts...)
 	return GivenWithSameState(t)
 }
 
 func GivenWithNamespace(t *testing.T, namespace string) *Context {
+	t.Helper()
 	ctx := Given(t)
 	ctx.appNamespace = namespace
 	return ctx
 }
 
 func GivenWithSameState(t *testing.T) *Context {
+	t.Helper()
 	// ARGOCE_E2E_DEFAULT_TIMEOUT can be used to override the default timeout
 	// for any context.
 	timeout := env.ParseNumFromEnv("ARGOCD_E2E_DEFAULT_TIMEOUT", 20, 0, 180)
@@ -307,8 +311,6 @@ func (c *Context) And(block func()) *Context {
 }
 
 func (c *Context) When() *Actions {
-	// in case any settings have changed, pause for 1s, not great, but fine
-	time.Sleep(1 * time.Second)
 	return &Actions{context: c}
 }
 
@@ -354,6 +356,11 @@ func (c *Context) HelmPassCredentials() *Context {
 
 func (c *Context) HelmSkipCrds() *Context {
 	c.helmSkipCrds = true
+	return c
+}
+
+func (c *Context) HelmSkipTests() *Context {
+	c.helmSkipTests = true
 	return c
 }
 

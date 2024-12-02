@@ -1,7 +1,7 @@
 import React, {useEffect, useState} from 'react';
 import {RouteComponentProps} from 'react-router';
 import {services} from '../../shared/services';
-import {PKCECodeVerifier, PKCELoginError, getPKCERedirectURI, pkceCallback} from './utils';
+import {PKCECodeVerifier, PKCEState, PKCELoginError, getPKCERedirectURI, pkceCallback} from './utils';
 import requests from '../../shared/services/requests';
 
 import './pkce-verify.scss';
@@ -19,6 +19,7 @@ export const PKCEVerification = (props: RouteComponentProps<any>) => {
             .finally(() => {
                 setLoading(false);
                 PKCECodeVerifier.unset();
+                PKCEState.unset();
             });
     }, [props.location]);
 

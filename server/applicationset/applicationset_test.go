@@ -190,6 +190,7 @@ func newTestAppSet(opts ...func(appset *appsv1.ApplicationSet)) *appsv1.Applicat
 }
 
 func testListAppsetsWithLabels(t *testing.T, appsetQuery applicationset.ApplicationSetListQuery, appServer *Server) {
+	t.Helper()
 	validTests := []struct {
 		testName       string
 		label          string
@@ -357,7 +358,7 @@ func TestCreateAppSetTemplatedProject(t *testing.T) {
 		Applicationset: testAppSet,
 	}
 	_, err := appServer.Create(context.Background(), &createReq)
-	assert.Equal(t, "error validating ApplicationSets: the Argo CD API does not currently support creating ApplicationSets with templated `project` fields", err.Error())
+	assert.EqualError(t, err, "error validating ApplicationSets: the Argo CD API does not currently support creating ApplicationSets with templated `project` fields")
 }
 
 func TestCreateAppSetWrongNamespace(t *testing.T) {
@@ -369,7 +370,7 @@ func TestCreateAppSetWrongNamespace(t *testing.T) {
 	}
 	_, err := appServer.Create(context.Background(), &createReq)
 
-	assert.Equal(t, "namespace 'NOT-ALLOWED' is not permitted", err.Error())
+	assert.EqualError(t, err, "namespace 'NOT-ALLOWED' is not permitted")
 }
 
 func TestCreateAppSetDryRun(t *testing.T) {
@@ -465,7 +466,7 @@ func TestGetAppSet(t *testing.T) {
 		appsetQuery := applicationset.ApplicationSetGetQuery{Name: "AppSet1", AppsetNamespace: "NOT-ALLOWED"}
 
 		_, err := appSetServer.Get(context.Background(), &appsetQuery)
-		assert.Equal(t, "namespace 'NOT-ALLOWED' is not permitted", err.Error())
+		assert.EqualError(t, err, "namespace 'NOT-ALLOWED' is not permitted")
 	})
 }
 
@@ -635,6 +636,6 @@ func TestResourceTree(t *testing.T) {
 		appsetQuery := applicationset.ApplicationSetTreeQuery{Name: "AppSet1", AppsetNamespace: "NOT-ALLOWED"}
 
 		_, err := appSetServer.ResourceTree(context.Background(), &appsetQuery)
-		assert.Equal(t, "namespace 'NOT-ALLOWED' is not permitted", err.Error())
+		assert.EqualError(t, err, "namespace 'NOT-ALLOWED' is not permitted")
 	})
 }
